@@ -91,6 +91,7 @@ class Level:
                                     self.create_attack,
                                     self.destroy_attack,
                                     self.create_magic,
+                                    self.attackable_sprites,
                                 )
                             else:
                                 if col == "390":
@@ -109,6 +110,7 @@ class Level:
                                     self.damage_player,
                                     self.trigger_death_particles,
                                     self.add_exp,
+                                    self.attackable_sprites,
                                 )
 
     def create_attack(self):

@@ -1,7 +1,11 @@
+from os import path
+from typing import Any
 import pygame
+import pathing
 from settings import *
 from entity import Entity
 from support import *
+import math
 
 
 class Enemy(Entity):
@@ -10,10 +14,11 @@ class Enemy(Entity):
         monster_name,
         pos,
         groups,
-        obstacle_sprites,
+        obstacle_sprites: Any,
         damage_player,
         trigger_death_particles,
         add_exp,
+        attackable_sprites,
     ):
 
         # general setup
@@ -28,14 +33,18 @@ class Enemy(Entity):
         # movement
         self.rect = self.image.get_rect(topleft=pos)
         self.hitbox = self.rect.inflate(0, -10)
-        self.obstacle_sprites = obstacle_sprites
+        if monster_name == "raccoon":
+            self.hitbox = self.rect.inflate(-176, -186)
+        self.obstacle_sprites: list[Any] = obstacle_sprites
+        self.attackable_sprites = attackable_sprites
+        self.player = None
 
         # stats
         self.monster_name = monster_name
         monster_info = monster_data[self.monster_name]
         self.health = monster_info["health"]
         self.exp = monster_info["exp"]
-        self.speed = monster_info["speed"]
+        self.speed = 64
         self.attack_damage = monster_info["damage"]
         self.resistance = monster_info["resistance"]
         self.attack_radius = monster_info["attack_radius"]
@@ -44,7 +53,7 @@ class Enemy(Entity):
 
         # player interaction
         self.can_attack = True
-        self.attack_time = None
+        self.attack_time: int = None
         self.attack_cooldown = 400
         self.damage_player = damage_player
         self.trigger_death_particles = trigger_death_particles
@@ -52,7 +61,7 @@ class Enemy(Entity):
 
         # invincibility timer
         self.vulnerable = True
-        self.hit_time = None
+        self.hit_time: int = None
         self.invincibility_duration = 300
 
         # sounds
@@ -62,6 +71,13 @@ class Enemy(Entity):
         self.death_sound.set_volume(0.6)
         self.hit_sound.set_volume(0.6)
         self.attack_sound.set_volume(0.6)
+
+        self.last_movement_update_time = pygame.time.get_ticks()
+        # self.movement_delay = (
+        #     max(map(lambda m: m["speed"], monster_data.values()))
+        #     / monster_info["speed"]
+        # ) * 350
+        self.movement_delay = 400
 
     def import_graphics(self, name):
         self.animations = {"idle": [], "move": [], "attack": []}
@@ -81,6 +97,20 @@ class Enemy(Entity):
 
         return (distance, direction)
 
+    def get_direction_vector(self, a, b, x, y):
+        # Calculate the differences in x and y coordinates
+        dx = x - a
+        dy = y - b
+
+        # Create a Vector2 object with the calculated differences
+        direction = pygame.math.Vector2(dx, dy)
+
+        # Normalize the vector
+        if direction.length() != 0:
+            direction.normalize_ip()
+
+        return direction
+
     def get_status(self, player):
         distance = self.get_player_distance_direction(player)[0]
 
@@ -98,8 +128,6 @@ class Enemy(Entity):
             self.attack_time = pygame.time.get_ticks()
             self.damage_player(self.attack_damage, self.attack_type)
             self.attack_sound.play()
-        elif self.status == "move":
-            self.direction = self.get_player_distance_direction(player)[1]
         else:
             self.direction = pygame.math.Vector2()
 
@@ -155,11 +183,35 @@ class Enemy(Entity):
 
     def update(self):
         self.hit_reaction()
-        self.move(self.speed)
+        current_time = pygame.time.get_ticks()
+
+        if current_time - self.last_movement_update_time >= self.movement_delay:
+            self.last_movement_update_time = current_time
+            g_values = {}
+            if self.player and self.status == "move":
+                path = pathing.adaptive_a_star(
+                    self.rect.center,
+                    self.player.rect.center,
+                    list(map(lambda s: s.rect.center, self.obstacle_sprites)),
+                    TILESIZE,
+                    g_values,
+                )
+                if path:
+                    self.direction = self.get_direction_vector(
+                        self.rect.center[0],
+                        self.rect.center[1],
+                        path[0][0],
+                        path[0][1],
+                    )
+                    print(path)
+                    self.move(self.speed)
+                    print(self.direction)
+
         self.animate()
         self.cooldowns()
         self.check_death()
 
     def enemy_update(self, player):
+        self.player = player
         self.get_status(player)
         self.actions(player)

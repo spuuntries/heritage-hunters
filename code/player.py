@@ -7,7 +7,14 @@ from debug import debug
 
 class Player(Entity):
     def __init__(
-        self, pos, groups, obstacle_sprites, create_attack, destroy_attack, create_magic
+        self,
+        pos,
+        groups,
+        obstacle_sprites,
+        create_attack,
+        destroy_attack,
+        create_magic,
+        attackable_sprites,
     ):
         super().__init__(groups)
         self.image = pygame.image.load("../graphics/test/player.png").convert_alpha()
@@ -23,6 +30,7 @@ class Player(Entity):
         self.attack_cooldown = 400
         self.attack_time = None
         self.obstacle_sprites = obstacle_sprites
+        self.attackable_sprites = attackable_sprites
 
         # weapon
         self.create_attack = create_attack
