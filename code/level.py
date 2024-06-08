@@ -25,7 +25,7 @@ class Level:
         self.obstacle_sprites = pygame.sprite.Group()
 
         # attack sprites
-        self.current_attack = None
+        self.current_attack = []
         self.attack_sprites = pygame.sprite.Group()
         self.attackable_sprites = pygame.sprite.Group()
 
@@ -114,9 +114,8 @@ class Level:
                                 )
 
     def create_attack(self):
-
-        self.current_attack = Weapon(
-            self.player, [self.visible_sprites, self.attack_sprites]
+        self.current_attack.append(
+            Weapon(self.player, [self.visible_sprites, self.attack_sprites])
         )
 
     def create_magic(self, style, strength, cost):
@@ -130,8 +129,8 @@ class Level:
 
     def destroy_attack(self):
         if self.current_attack:
-            self.current_attack.kill()
-        self.current_attack = None
+            for att in self.current_attack:
+                att.kill()
 
     def player_attack_logic(self):
         if self.attack_sprites:

@@ -73,11 +73,12 @@ class Enemy(Entity):
         self.attack_sound.set_volume(0.6)
 
         self.last_movement_update_time = pygame.time.get_ticks()
-        # self.movement_delay = (
-        #     max(map(lambda m: m["speed"], monster_data.values()))
-        #     / monster_info["speed"]
-        # ) * 350
-        self.movement_delay = 400
+        self.movement_delay = (
+            max(map(lambda m: m["speed"], monster_data.values()))
+            / monster_info["speed"]
+        ) * 350
+        # self.movement_delay = 400
+        self.prev_move = None
 
     def import_graphics(self, name):
         self.animations = {"idle": [], "move": [], "attack": []}
@@ -189,13 +190,24 @@ class Enemy(Entity):
             self.last_movement_update_time = current_time
             g_values = {}
             if self.player and self.status == "move":
-                path = pathing.adaptive_a_star(
-                    self.rect.center,
-                    self.player.rect.center,
-                    list(map(lambda s: s.rect.center, self.obstacle_sprites)),
-                    TILESIZE,
-                    g_values,
-                )
+                if self.monster_name == "bamboo":
+                    path = pathing.find_path_maximizing_distance(
+                        self.rect.center,
+                        self.player.rect.center,
+                        list(map(lambda s: s.rect.center, self.obstacle_sprites)),
+                        TILESIZE,
+                        1,
+                        self.player.status,
+                    )
+                else:
+                    path = pathing.adaptive_a_star(
+                        self.rect.center,
+                        self.player.rect.center,
+                        list(map(lambda s: s.rect.center, self.obstacle_sprites)),
+                        TILESIZE,
+                        g_values,
+                        self.prev_move,
+                    )
                 if path:
                     self.direction = self.get_direction_vector(
                         self.rect.center[0],
@@ -203,10 +215,10 @@ class Enemy(Entity):
                         path[0][0],
                         path[0][1],
                     )
+                    self.prev_move = path[0]
                     print(path)
                     self.move(self.speed)
                     print(self.direction)
-
         self.animate()
         self.cooldowns()
         self.check_death()

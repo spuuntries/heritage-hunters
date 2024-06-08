@@ -135,8 +135,6 @@ class Player(Entity):
             if keys[pygame.K_SPACE]:
                 self.attacking = True
                 self.attack_time = pygame.time.get_ticks()
-                self.create_attack()
-                self.weapon_attack_sound.play()
 
             # magic input
             if keys[pygame.K_LCTRL]:
@@ -191,29 +189,6 @@ class Player(Entity):
             if "attack" in self.status:
                 self.status = self.status.replace("_attack", "")
 
-    def cooldowns(self):
-        current_time = pygame.time.get_ticks()
-
-        if self.attacking:
-            if (
-                current_time - self.attack_time
-                >= self.attack_cooldown + weapon_data[self.weapon]["cooldown"]
-            ):
-                self.attacking = False
-                self.destroy_attack()
-
-        if not self.can_switch_weapon:
-            if current_time - self.weapon_switch_time >= self.switch_duration_cooldown:
-                self.can_switch_weapon = True
-
-        if not self.can_switch_magic:
-            if current_time - self.magic_switch_time >= self.switch_duration_cooldown:
-                self.can_switch_magic = True
-
-        if not self.vulnerable:
-            if current_time - self.hurt_time >= self.invulnerability_duration:
-                self.vulnerable = True
-
     def animate(self):
         animation = self.animations[self.status]
 
@@ -257,14 +232,37 @@ class Player(Entity):
 
     def update(self):
         current_time = pygame.time.get_ticks()
+        self.get_status()
 
         if current_time - self.last_movement_update_time >= self.movement_delay:
             self.input()  # Process inputs including movement
+
             self.last_movement_update_time = current_time
             self.move(self.stats["speed"])
 
-        self.cooldowns()
-        self.get_status()
+            if self.attacking:
+                self.create_attack()
+                self.weapon_attack_sound.play()
+
+                if (
+                    current_time - self.attack_time  # type: ignore
+                    >= self.attack_cooldown + weapon_data[self.weapon]["cooldown"]
+                ):
+                    self.attacking = False
+                    self.destroy_attack()
+
+            if not self.can_switch_weapon:
+                if current_time - self.weapon_switch_time >= self.switch_duration_cooldown:  # type: ignore
+                    self.can_switch_weapon = True
+
+            if not self.can_switch_magic:
+                if current_time - self.magic_switch_time >= self.switch_duration_cooldown:  # type: ignore
+                    self.can_switch_magic = True
+
+            if not self.vulnerable:
+                if current_time - self.hurt_time >= self.invulnerability_duration:  # type: ignore
+                    self.vulnerable = True
+
         self.animate()
-        debug([self.hitbox.x, self.hitbox.y])
+        # debug([self.hitbox.x, self.hitbox.y])
         self.energy_recovery()
