@@ -1,6 +1,7 @@
 import pygame
 from math import sin
 from debug import debug
+from settings import *
 
 
 class Entity(pygame.sprite.Sprite):
@@ -14,30 +15,43 @@ class Entity(pygame.sprite.Sprite):
         if self.direction.magnitude() != 0:
             self.direction = self.direction.normalize()
 
-        self.hitbox.x += self.direction.x * speed
-        self.hitbox.x = round(self.hitbox.x / 64) * 64
-        self.collision("horizontal")
-        self.hitbox.y += self.direction.y * speed
-        self.hitbox.y = round(self.hitbox.y / 64) * 64
-        self.collision("vertical")
+        # Calculate the target position based on the current position and direction
+        target_x = self.hitbox.x + self.direction.x * speed
+        target_y = self.hitbox.y + self.direction.y * speed
+
+        # Round the target position to the nearest multiple of 64 (assuming 64x64 grid)
+        target_x = round(target_x / 64) * 64
+        target_y = round(target_y / 64) * 64
+
+        # Check for collisions at the target position
+        target_hitbox = self.hitbox.copy()
+        prev_hitbox = self.hitbox.copy()
+        target_hitbox.x = target_x
+        target_hitbox.y = target_y
+
+        # Horizontal collision handling
+        for sprite in self.obstacle_sprites.sprites():
+            if sprite.hitbox.collidepoint(target_hitbox.x, target_hitbox.y):
+                if self.direction.x > 0:  # moving right
+                    target_hitbox.right = sprite.hitbox.left
+                if self.direction.x < 0:  # moving left
+                    target_hitbox.left = sprite.hitbox.right
+                self.direction.x = 0  # stop horizontal movement
+
+        # Vertical collision handling
+        for sprite in self.obstacle_sprites.sprites():
+            if sprite.hitbox.collidepoint(target_hitbox.x, target_hitbox.y):
+                if self.direction.y > 0:  # moving down
+                    target_hitbox.bottom = sprite.hitbox.top
+                if self.direction.y < 0:  # moving up
+                    target_hitbox.top = sprite.hitbox.bottom
+                self.direction.y = 0  # stop vertical movement
+
+        # Update the hitbox position to the target position
+        self.hitbox.x = target_hitbox.x
+        self.hitbox.y = target_hitbox.y
+
         self.rect.center = self.hitbox.center
-
-    def collision(self, direction):
-        if direction == "horizontal":
-            for sprite in self.obstacle_sprites:
-                if sprite.hitbox.colliderect(self.hitbox):
-                    if self.direction.x > 0:  # moving right
-                        self.hitbox.right = sprite.hitbox.left
-                    if self.direction.x < 0:  # moving left
-                        self.hitbox.left = sprite.hitbox.right
-
-        if direction == "vertical":
-            for sprite in self.obstacle_sprites:
-                if sprite.hitbox.colliderect(self.hitbox):
-                    if self.direction.y > 0:  # moving down
-                        self.hitbox.bottom = sprite.hitbox.top
-                    if self.direction.y < 0:  # moving up
-                        self.hitbox.top = sprite.hitbox.bottom
 
     def wave_value(self):
         value = sin(pygame.time.get_ticks())
