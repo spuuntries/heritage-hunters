@@ -1,6 +1,7 @@
 import pygame, sys
 from settings import *
 from level import Level
+from generate import generate_maze
 
 
 class Game:
@@ -12,7 +13,16 @@ class Game:
         pygame.display.set_caption("Zelda")
         self.clock = pygame.time.Clock()
 
-        self.level = Level()
+        self.players = ["461", "462"]
+        self.level = Level(
+            list(
+                map(
+                    lambda row: list(map(str, row)),
+                    generate_maze(39, 39, list(map(int, self.players))),
+                )
+            ),
+            self.players,
+        )
 
         # sound
         # main_sound = pygame.mixer.Sound("../audio/main.ogg")
@@ -29,7 +39,7 @@ class Game:
                     if event.key == pygame.K_m:
                         self.level.toggle_menu()
 
-            self.screen.fill(WATER_COLOR)
+            self.screen.fill("#000000")
             self.level.run()
             pygame.display.update()
             self.clock.tick(FPS)

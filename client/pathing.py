@@ -1,9 +1,10 @@
 import heapq
 import math
 import random
+from typing import Optional
 
 
-def get_neighbors(node, obstacles, size, reference: str = None):
+def get_neighbors(node, obstacles, size, reference: Optional[str] = None):
     x, y = node
     neighbors = set()
     status_mapping = {"up": (0, -1), "down": (0, 1), "right": (1, 0), "left": (-1, 0)}

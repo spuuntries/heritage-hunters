@@ -15,6 +15,7 @@ class Player(Entity):
         destroy_attack,
         create_magic,
         attackable_sprites,
+        id,
     ):
         super().__init__(groups)
         self.image = pygame.image.load("../graphics/test/player.png").convert_alpha()
@@ -26,6 +27,8 @@ class Player(Entity):
         self.status = "down"
 
         # movement
+        self.controllable = False
+        self.id = id
         self.attacking = False
         self.attack_cooldown = 400
         self.attack_time = None
@@ -77,7 +80,7 @@ class Player(Entity):
 
         # damage timer
         self.vulnerable = True
-        self.hurt_time = None
+        self.hurt_time = None  # type: ignore
         self.invulnerability_duration = 500
 
         # import a sound
@@ -109,7 +112,7 @@ class Player(Entity):
             self.animations[animation] = import_folder(full_path)
 
     def input(self):
-        if not self.attacking:
+        if self.controllable and not self.attacking:
             keys = pygame.key.get_pressed()
 
             # movement input
