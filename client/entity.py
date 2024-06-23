@@ -47,9 +47,16 @@ class Entity(pygame.sprite.Sprite):
                     target_hitbox.top = sprite.hitbox.bottom
                 self.direction.y = 0  # stop vertical movement
 
-        # Update the hitbox position to the target position
-        self.hitbox.x = target_hitbox.x
-        self.hitbox.y = target_hitbox.y
+        for sprite in self.obstacle_sprites.sprites():
+            if sprite.hitbox.collidepoint(target_hitbox.x, target_hitbox.y):
+                # Move the player back to the previous position
+                self.hitbox.x = prev_hitbox.x
+                self.hitbox.y = prev_hitbox.y
+                break
+            else:
+                # Update the hitbox position to the target position if no collision
+                self.hitbox.x = target_hitbox.x
+                self.hitbox.y = target_hitbox.y
 
         self.rect.center = self.hitbox.center
 

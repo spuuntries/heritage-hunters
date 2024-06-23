@@ -76,6 +76,15 @@ class Level:
                             random_grass_image,
                         )
 
+                    if col == "13":
+                        surf = graphics["objects"][int(col)]
+                        Tile(
+                            (x, y),
+                            [self.visible_sprites, self.obstacle_sprites],
+                            "object",
+                            surf,
+                        )
+
                     if col in self.player_ids:
                         player = Player(
                             (x, y),

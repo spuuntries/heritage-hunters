@@ -21,10 +21,6 @@ def check_token(token):
 
 def create_token(payload):
     secret_key = os.environ["JWT_SECRET"]
-    now = datetime.utcnow()
-    expiry_time = now + timedelta(days=1)
-    payload["exp"] = expiry_time
-
     token = jwt.encode(
         payload,
         secret_key,

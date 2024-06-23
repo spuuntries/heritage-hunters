@@ -137,6 +137,7 @@ class Player(Entity):
             # attack input
             if keys[pygame.K_SPACE]:
                 self.attacking = True
+                self.weapon_attack_sound.play()
                 self.attack_time = pygame.time.get_ticks()
 
             # magic input
@@ -245,7 +246,6 @@ class Player(Entity):
 
             if self.attacking:
                 self.create_attack()
-                self.weapon_attack_sound.play()
 
                 if (
                     current_time - self.attack_time  # type: ignore

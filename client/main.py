@@ -1,12 +1,14 @@
-import pygame, sys
-from settings import *
-from level import Level
 from generate import generate_maze
+from tinydb import TinyDB, Query
+from level import Level
+from settings import *
+import pygame, sys
+import requests
+import socketio
 
 
 class Game:
     def __init__(self):
-
         # general setup
         pygame.init()
         self.screen = pygame.display.set_mode((WIDTH, HEIGTH))
@@ -18,11 +20,19 @@ class Game:
             list(
                 map(
                     lambda row: list(map(str, row)),
-                    generate_maze(39, 39, list(map(int, self.players))),
+                    generate_maze(
+                        39,
+                        39,
+                        players=list(map(int, self.players)),
+                        enemies=["393"] * 20,
+                        wall=13,
+                    ),
                 )
             ),
             self.players,
         )
+
+        print("players", list(map(lambda p: (p.rect.x, p.rect.y), self.level.players)))
 
         # sound
         # main_sound = pygame.mixer.Sound("../audio/main.ogg")
@@ -47,4 +57,15 @@ class Game:
 
 if __name__ == "__main__":
     game = Game()
+
+    # sio = socketio.Client()
+    # sio.connect(
+    #     "http://localhost:5000",
+    #     auth={
+    #         "token":
+    #     },
+    # )
+    #
+    # sio.emit("join", {"room": "asd"})
+    # sio.wait()
     game.run()
