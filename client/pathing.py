@@ -40,7 +40,7 @@ def get_neighbors(node, obstacles, size, reference: Optional[str] = None):
                 ]
             ),
         )
-        if 57 * size > nx >= 0 and 50 * size > ny >= 0 and (nx, ny) not in obstacles:
+        if (nx, ny) not in obstacles:
             neighbors.add((nx, ny))
     return list(neighbors)
 
@@ -49,15 +49,15 @@ def heuristic(a, b):
     return math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
 
 
-def adaptive_a_star(start, goal, obstacles, size, g_values, prev_move=None):
-    open_set = []
-    heapq.heappush(open_set, (0 + heuristic(start, goal), 0, start))
+def a_star(start, goal, obstacles, size):
+    queue = []
+    heapq.heappush(queue, (0, heuristic(start, goal), 0, start))
     came_from = {}
     g_score = {start: 0}
     f_score = {start: heuristic(start, goal)}
 
-    while open_set:
-        _, current_g, current = heapq.heappop(open_set)
+    while queue:
+        depth, _, current_g, current = heapq.heappop(queue)
 
         if current == (round(goal[0] / size) * size, round(goal[1] / size) * size):
             path = []
@@ -66,17 +66,18 @@ def adaptive_a_star(start, goal, obstacles, size, g_values, prev_move=None):
                 current = came_from[current]
             path.reverse()
             return path
-        if prev_move:
-            obstacles += [prev_move]
+
         for neighbor in get_neighbors(current, obstacles, size):
-            tentative_g_score = g_score[current] + size
+            if depth >= 20:
+                continue
+            tentative_g_score = g_score[current] + 1
 
             if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
                 came_from[neighbor] = current
                 g_score[neighbor] = tentative_g_score
-                f_score[neighbor] = tentative_g_score + heuristic(neighbor, goal)
+                f_score[neighbor] = g_score[neighbor] + heuristic(neighbor, goal)
                 heapq.heappush(
-                    open_set, (f_score[neighbor], tentative_g_score, neighbor)
+                    queue, (depth + 1, f_score[neighbor], tentative_g_score, neighbor)
                 )
 
     return []
@@ -109,8 +110,8 @@ def negascout(start, player_pos, obstacles, size, depth, alpha, beta, reference)
                 obstacles,
                 size,
                 depth - 1,
-                -alpha - 1,
                 -alpha,
+                -alpha - 1,
                 reference,
             )
             if alpha < score < beta:
@@ -125,6 +126,7 @@ def negascout(start, player_pos, obstacles, size, depth, alpha, beta, reference)
                     -score,
                     reference,
                 )
+                alpha = max(alpha, score)
 
         score = -score
 
@@ -155,19 +157,19 @@ def maximize_distance(start, player_pos, obstacles, size, depth, reference):
     return move
 
 
-def find_path_maximizing_distance(start, player_pos, obstacles, size, depth, reference):
+def find_path_maximizing_distance(
+    start, player_pos, obstacles, size, depth, reference, max_path_length=100
+):
     path = []
     current = start
-    visited = set()
 
-    while True:
+    for _ in range(max_path_length):
         next_move = maximize_distance(
             current, player_pos, obstacles, size, depth, reference
         )
-        if next_move is None or next_move in visited:
+        if next_move is None or next_move == current:
             break
         path.append(next_move)
-        visited.add(next_move)
         current = next_move
 
     return path

@@ -37,7 +37,7 @@ class Enemy(Entity):
             self.hitbox = self.rect.inflate(-176, -186)
         self.obstacle_sprites: list[Any] = obstacle_sprites
         self.attackable_sprites = attackable_sprites
-        self.player = None
+        self.playert = None
 
         # stats
         self.monster_name = monster_name
@@ -50,10 +50,11 @@ class Enemy(Entity):
         self.attack_radius = monster_info["attack_radius"]
         self.notice_radius = monster_info["notice_radius"]
         self.attack_type = monster_info["attack_type"]
+        self.aggro = monster_info["aggro"]
 
         # player interaction
         self.can_attack = True
-        self.attack_time: int = None
+        self.attack_time: int = None  # type: ignore
         self.attack_cooldown = 400
         self.damage_player = damage_player
         self.trigger_death_particles = trigger_death_particles
@@ -61,7 +62,7 @@ class Enemy(Entity):
 
         # invincibility timer
         self.vulnerable = True
-        self.hit_time: int = None
+        self.hit_time: int = None  # type: ignore
         self.invincibility_duration = 300
 
         # sounds
@@ -72,6 +73,7 @@ class Enemy(Entity):
         self.hit_sound.set_volume(0.6)
         self.attack_sound.set_volume(0.6)
 
+        # more movement
         self.last_movement_update_time = pygame.time.get_ticks()
         self.movement_delay = (
             max(map(lambda m: m["speed"], monster_data.values()))
@@ -79,6 +81,7 @@ class Enemy(Entity):
         ) * 350
         # self.movement_delay = 400
         self.prev_move = None
+        self.prev_obs = None
 
     def import_graphics(self, name):
         self.animations = {"idle": [], "move": [], "attack": []}
@@ -125,9 +128,9 @@ class Enemy(Entity):
             self.status = "idle"
 
     def actions(self, player):
-        if self.status == "attack":
+        if self.status == "attack" and self.aggro:
             self.attack_time = pygame.time.get_ticks()
-            self.damage_player(self.attack_damage, self.attack_type)
+            self.damage_player(self.attack_damage, self.attack_type, self.playert)
             self.attack_sound.play()
         else:
             self.direction = pygame.math.Vector2()
@@ -153,7 +156,7 @@ class Enemy(Entity):
     def cooldowns(self):
         current_time = pygame.time.get_ticks()
         if not self.can_attack:
-            if current_time - self.attack_time >= self.attack_cooldown:
+            if self.aggro and current_time - self.attack_time >= self.attack_cooldown:
                 self.can_attack = True
 
         if not self.vulnerable:
@@ -188,25 +191,25 @@ class Enemy(Entity):
 
         if current_time - self.last_movement_update_time >= self.movement_delay:
             self.last_movement_update_time = current_time
-            g_values = {}
-            if self.player and self.status == "move":
-                if self.monster_name == "bamboo":
+            if self.playert and self.status == "move":
+                obstacles = list(map(lambda s: s.rect.center, self.obstacle_sprites))
+                if not self.aggro:
                     path = pathing.find_path_maximizing_distance(
                         self.rect.center,
-                        self.player.rect.center,
-                        list(map(lambda s: s.rect.center, self.obstacle_sprites)),
+                        self.playert.rect.center,
+                        obstacles,
                         TILESIZE,
-                        1,
-                        self.player.status,
+                        3,
+                        self.playert.status,
                     )
                 else:
-                    path = pathing.adaptive_a_star(
+                    if self.prev_move:
+                        obstacles += [*self.prev_move]
+                    path = pathing.a_star(
                         self.rect.center,
-                        self.player.rect.center,
-                        list(map(lambda s: s.rect.center, self.obstacle_sprites)),
+                        self.playert.rect.center,
+                        obstacles,
                         TILESIZE,
-                        g_values,
-                        self.prev_move,
                     )
                 if path:
                     self.direction = self.get_direction_vector(
@@ -215,7 +218,7 @@ class Enemy(Entity):
                         path[0][0],
                         path[0][1],
                     )
-                    self.prev_move = path[0]
+                    self.prev_move = path[:3]
                     print(path)
                     self.move(self.speed)
                     print(self.direction)
@@ -223,7 +226,14 @@ class Enemy(Entity):
         self.cooldowns()
         self.check_death()
 
-    def enemy_update(self, player):
-        self.player = player
+    def enemy_update(self, players):
+        player = sorted(
+            [
+                (player, self.get_player_distance_direction(player))
+                for player in players
+            ],
+            key=lambda x: x[1][0],
+        )[0][0]
+        self.playert = player
         self.get_status(player)
         self.actions(player)

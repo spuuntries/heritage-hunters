@@ -3,6 +3,7 @@ from settings import *
 from support import import_folder
 from entity import Entity
 from debug import debug
+from typing import Optional
 
 
 class Player(Entity):
@@ -15,7 +16,7 @@ class Player(Entity):
         destroy_attack,
         create_magic,
         attackable_sprites,
-        id,
+        id: str,
     ):
         super().__init__(groups)
         self.image = pygame.image.load("../graphics/test/player.png").convert_alpha()
@@ -28,6 +29,7 @@ class Player(Entity):
 
         # movement
         self.controllable = False
+        self.aio = None
         self.id = id
         self.attacking = False
         self.attack_cooldown = 400
@@ -243,6 +245,11 @@ class Player(Entity):
 
             self.last_movement_update_time = current_time
             self.move(self.stats["speed"])
+
+            if self.aio:
+                self.aio.sio.emit(
+                    "playermove", (self.id, self.rect.x, self.rect.y, self.status)
+                )
 
             if self.attacking:
                 self.create_attack()

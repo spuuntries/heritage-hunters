@@ -1,3 +1,4 @@
+from typing import Optional
 import pygame
 from settings import *
 from tile import Tile
@@ -14,13 +15,14 @@ from upgrade import Upgrade
 
 
 class Level:
-    def __init__(self, layout=None, player_ids=["461"], player="461"):
+    def __init__(self, layout=None, player_ids=["461"], player="461", aio=None):
         self.layout = layout
         if layout is None:
             self.layout = import_csv_layout("../map/map_Grass.csv")
-        self.players = []
+        self.players: list[Player] = []
         self.player_ids = player_ids
         self.player_id = player
+        self.aio = aio
 
         # get the display surface
         self.display_surface = pygame.display.get_surface()
@@ -96,20 +98,12 @@ class Level:
                             self.attackable_sprites,
                             col,
                         )
-                        self.players.append(player)
                         if col == self.player_id:
                             player.controllable = True
+                            player.aio = self.aio
                             self.player = player
-                    # elif col == "395":
-                    #     Player(
-                    #         (x, y),
-                    #         [self.visible_sprites],
-                    #         self.obstacle_sprites,
-                    #         self.create_attack,
-                    #         self.destroy_attack,
-                    #         self.create_magic,
-                    #         self.attackable_sprites,
-                    #     )
+                        self.players.append(player)
+
                     if col == "390":
                         monster_name = "bamboo"
                         Enemy(
@@ -199,25 +193,22 @@ class Level:
                                 self.player, attack_sprite.sprite_type
                             )
 
-    def damage_player(self, amount, attack_type):
-        if self.player.vulnerable:
-            self.player.health -= amount
-            self.player.vulnerable = False
-            self.player.hurt_time = pygame.time.get_ticks()  # type: ignore
+    def damage_player(self, amount, attack_type, player):
+        if player.vulnerable:
+            player.health -= amount
+            player.vulnerable = False
+            player.hurt_time = pygame.time.get_ticks()  # type: ignore
             self.animation_player.create_particles(
-                attack_type, self.player.rect.center, [self.visible_sprites]
+                attack_type, player.rect.center, [self.visible_sprites]
             )
 
     def trigger_death_particles(self, pos, particle_type):
-
         self.animation_player.create_particles(particle_type, pos, self.visible_sprites)
 
     def add_exp(self, amount):
-
         self.player.exp += amount
 
     def toggle_menu(self):
-
         self.game_paused = not self.game_paused
 
     def run(self):
@@ -228,7 +219,7 @@ class Level:
             self.upgrade.display()
         else:
             self.visible_sprites.update()
-            self.visible_sprites.enemy_update(self.player)
+            self.visible_sprites.enemy_update(self.players)
             self.player_attack_logic()
 
 

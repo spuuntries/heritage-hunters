@@ -85,6 +85,7 @@ monster_data = {
         "resistance": 3,
         "attack_radius": 80,
         "notice_radius": 360,
+        "aggro": True,
     },
     "raccoon": {
         "health": 300,
@@ -118,5 +119,6 @@ monster_data = {
         "resistance": 3,
         "attack_radius": 50,
         "notice_radius": 300,
+        "aggro": False,
     },
 }
