@@ -198,6 +198,39 @@ async def playermove(sid, id, x, y, status, *args, **kwargs):
             )
 
 
+@sio.on("exitmaze")  # type: ignore
+async def exitmaze(sid, id, *args, **kwargs):
+    if any(client[0] == sid for room in rooms for client in room):
+        room = next(room for room in rooms for client in room if client[0] == sid)
+        for client, _ in room:
+            user = await models.User.get(clientid=id)
+            await sio.emit(
+                "stateupdate",
+                {
+                    "type": "exit",
+                    "username": user.name if client != sid else "You",
+                },
+                to=client,
+            )
+
+
+@sio.on("atk")  # type: ignore
+async def playerattack(sid, id, *args, **kwargs):
+    if any(client[0] == sid for room in rooms for client in room):
+        room = next(room for room in rooms for client in room if client[0] == sid)
+        for client, _ in room:
+            if client == sid:
+                continue
+            await sio.emit(
+                "stateupdate",
+                {
+                    "type": "atk",
+                    "id": id,
+                },
+                to=client,
+            )
+
+
 @sio.event
 async def disconnect(sid):
     print("Client disconnected")

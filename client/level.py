@@ -22,6 +22,7 @@ class Level:
         self.players: list[Player] = []
         self.player_ids = player_ids
         self.player_id = player
+        self.finish_point: Optional[Tile] = None
         self.aio = aio
 
         # get the display surface
@@ -58,6 +59,7 @@ class Level:
         graphics = {
             "grass": import_folder("../graphics/Grass"),
             "objects": import_folder("../graphics/objects"),
+            "chest": import_folder("../graphics/chest"),
         }
 
         for row_index, row in enumerate(self.layout):  # type: ignore
@@ -87,6 +89,15 @@ class Level:
                             surf,
                         )
 
+                    if col == "666":
+                        surf = graphics["chest"][0]
+                        self.finish_point = Tile(
+                            (x, y),
+                            [self.visible_sprites],
+                            "chest",
+                            surf,
+                        )
+
                     if col in self.player_ids:
                         player = Player(
                             (x, y),
@@ -98,6 +109,7 @@ class Level:
                             self.attackable_sprites,
                             col,
                         )
+                        player.level = self  # type: ignore
                         if col == self.player_id:
                             player.controllable = True
                             player.aio = self.aio
@@ -153,9 +165,9 @@ class Level:
                             self.attackable_sprites,
                         )
 
-    def create_attack(self):
-        self.current_attack.append(
-            Weapon(self.player, [self.visible_sprites, self.attack_sprites])
+    def create_attack(self, player: Player):
+        player.current_attack.append(
+            Weapon(player, [self.visible_sprites, self.attack_sprites])
         )
 
     def create_magic(self, style, strength, cost):
@@ -167,31 +179,32 @@ class Level:
                 self.player, cost, [self.visible_sprites, self.attack_sprites]
             )
 
-    def destroy_attack(self):
-        if self.current_attack:
-            for att in self.current_attack:
+    def destroy_attack(self, player: Player):
+        if player.current_attack:
+            for att in player.current_attack:
                 att.kill()
 
     def player_attack_logic(self):
-        if self.attack_sprites:
-            for attack_sprite in self.attack_sprites:
-                collision_sprites = pygame.sprite.spritecollide(
-                    attack_sprite, self.attackable_sprites, False
-                )
-                if collision_sprites:
-                    for target_sprite in collision_sprites:
-                        if target_sprite.sprite_type == "grass":
-                            pos = target_sprite.rect.center
-                            offset = pygame.math.Vector2(0, 75)
-                            for leaf in range(randint(3, 6)):
-                                self.animation_player.create_grass_particles(
-                                    pos - offset, [self.visible_sprites]
+        for player in self.players:
+            if self.attack_sprites:
+                for attack_sprite in self.attack_sprites:
+                    collision_sprites = pygame.sprite.spritecollide(
+                        attack_sprite, self.attackable_sprites, False
+                    )
+                    if collision_sprites:
+                        for target_sprite in collision_sprites:
+                            if target_sprite.sprite_type == "grass":
+                                pos = target_sprite.rect.center
+                                offset = pygame.math.Vector2(0, 75)
+                                for leaf in range(randint(3, 6)):
+                                    self.animation_player.create_grass_particles(
+                                        pos - offset, [self.visible_sprites]
+                                    )
+                                target_sprite.kill()
+                            else:
+                                target_sprite.get_damage(
+                                    self.player, attack_sprite.sprite_type
                                 )
-                            target_sprite.kill()
-                        else:
-                            target_sprite.get_damage(
-                                self.player, attack_sprite.sprite_type
-                            )
 
     def damage_player(self, amount, attack_type, player):
         if player.vulnerable:

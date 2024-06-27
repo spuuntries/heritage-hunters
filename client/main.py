@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--custom", action="store_true", help="Custom Instance?")
 args = parser.parse_args()
 
-APPURL = input("Instance URL: ") if args.custom else "http://localhost:5000"
+APPURL = input("Instance URL: ") if args.custom else "https://hhapi.spuun.art"
 
 
 def logger(str):
@@ -81,6 +81,16 @@ class AsyncIOHandler:
                             to_move.hitbox.y = round(data["y"] / 64) * 64
                             to_move.status = data["stat"]
                             to_move.animate()
+                    case "atk":
+                        if self.game.level:
+                            to_attack = list(
+                                filter(
+                                    lambda p: p.id == data["id"],
+                                    self.game.level.players,
+                                )
+                            )[0]
+                            to_attack.attack_time = pygame.time.get_ticks()
+                            to_attack.attacking = True
                     case "dc":
                         if self.game.level:
                             to_kill = list(
@@ -90,11 +100,29 @@ class AsyncIOHandler:
                                 )
                             )[0]
                             to_kill.kill()
+                    case "exit":
+                        if self.game:
+                            print(f"{str(data['username']).title()} won the game!")
+                            self.game.running = False
+                            self.sio.disconnect()
+                            pygame.display.quit()
+                            pygame.quit()
+                            sys.exit()
+                            exit()
 
         @self.sio.on("worldgen")  # type: ignore
         def worldgen(data, players):
             logger("World data received.")
             logger(players)
+            if not len(list(filter(bool, players))):
+                logger("Received bad data! Try queuing up again.")
+                if self.game:
+                    self.game.running = False
+                self.sio.disconnect()
+                pygame.display.quit()
+                pygame.quit()
+                sys.exit()
+                exit()
             if self.game and self.clientid:
                 self.game.level = Level(
                     layout=list(map(lambda row: list(map(str, row)), data)),
@@ -114,10 +142,11 @@ class Game:
         # general setup
         pygame.init()
         self.screen = pygame.display.set_mode((WIDTH, HEIGTH))
-        pygame.display.set_caption("Heritage hunters")
+        pygame.display.set_caption("Heritage Hunters")
         self.clock = pygame.time.Clock()
         self.level: Level = None  # type: ignore
         aio.game = self
+        self.running = True
 
         # print("players", list(map(lambda p: (p.rect.x, p.rect.y), self.level.players)))
 
@@ -127,7 +156,7 @@ class Game:
         # main_sound.play(loops=-1)
 
     def run(self):
-        while True:
+        while self.running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -240,6 +269,6 @@ if __name__ == "__main__":
     connection_thread = threading.Thread(target=async_io_handler.connect)
     connection_thread.start()
     game = Game(async_io_handler)
-    while True:
+    while game.running:
         if async_io_handler.is_connected():
             game.run()

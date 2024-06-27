@@ -22,6 +22,7 @@ class Player(Entity):
         self.image = pygame.image.load("../graphics/test/player.png").convert_alpha()
         self.rect = self.image.get_rect(topleft=pos)
         self.hitbox = self.rect.inflate(-6, HITBOX_OFFSET["player"])
+        self.level = None
 
         # graphics setup
         self.import_player_assets()
@@ -38,6 +39,7 @@ class Player(Entity):
         self.attackable_sprites = attackable_sprites
 
         # weapon
+        self.current_attack = []
         self.create_attack = create_attack
         self.destroy_attack = destroy_attack
         self.weapon_index = 0
@@ -87,7 +89,7 @@ class Player(Entity):
 
         # import a sound
         self.weapon_attack_sound = pygame.mixer.Sound("../audio/sword.wav")
-        self.weapon_attack_sound.set_volume(0.4)
+        self.weapon_attack_sound.set_volume(0.1)
 
         self.last_movement_update_time = pygame.time.get_ticks()
         self.movement_delay = 350
@@ -177,7 +179,6 @@ class Player(Entity):
                 self.magic = list(magic_data.keys())[self.magic_index]
 
     def get_status(self):
-
         # idle status
         if self.direction.x == 0 and self.direction.y == 0:
             if not "idle" in self.status and not "attack" in self.status:
@@ -246,20 +247,27 @@ class Player(Entity):
             self.last_movement_update_time = current_time
             self.move(self.stats["speed"])
 
+            if self.level and self.level.finish_point:
+                if self.rect.colliderect(self.level.finish_point.rect):
+                    if self.aio:
+                        self.aio.sio.emit("exitmaze", (self.id))
+
             if self.aio:
                 self.aio.sio.emit(
                     "playermove", (self.id, self.rect.x, self.rect.y, self.status)
                 )
 
             if self.attacking:
-                self.create_attack()
+                self.create_attack(self)
+                if self.aio:
+                    self.aio.sio.emit("atk", (self.id))
 
                 if (
                     current_time - self.attack_time  # type: ignore
                     >= self.attack_cooldown + weapon_data[self.weapon]["cooldown"]
                 ):
                     self.attacking = False
-                    self.destroy_attack()
+                    self.destroy_attack(self)
 
             if not self.can_switch_weapon:
                 if current_time - self.weapon_switch_time >= self.switch_duration_cooldown:  # type: ignore

@@ -70,6 +70,21 @@ def generate_maze(
     maze.insert(0, [wall] * (cols + 2))
     maze.append([wall] * (cols + 2))
 
+    setexit = False
+    while not setexit:
+        row = random.randint(1, rows - 2)
+        col = random.randint(1, cols - 2)
+        if (
+            maze[row][col] == -1
+            and all(
+                abs(row - p_row) + abs(col - p_col) >= 1  # rows // 8 + cols // 8
+                for p_row, p_col in player_positions
+            )
+            and not setexit
+        ):
+            maze[row][col] = "666"
+            setexit = True
+
     return maze
 
 
