@@ -32,7 +32,7 @@ register_tortoise(
 )
 
 NUMQUEUES = 4
-QUEUESIZE = 4 if not os.environ.get("QUEUESIZE") else os.environ["QUEUESIZE"]
+QUEUESIZE = 2 if not os.environ.get("QUEUESIZE") else int(os.environ["QUEUESIZE"])
 queues: dict[str, list[tuple[str, str]]] = {str(uuid4()): [] for _ in range(NUMQUEUES)}
 rooms: list[list] = []
 
@@ -106,43 +106,44 @@ async def processqueue():
                 rooms.append(queue)
                 for client, _ in queue:
                     await sio.emit("donequeue", None, to=client)
-                match type:
-                    case "maze":
-                        maze = generate_maze(
-                            39,
-                            39,
-                            players=list(map(lambda qe: qe[1], queue)),
-                            enemies=["393"] * 20,
-                            wall=13,
+
+                if type == "maze":
+                    maze = generate_maze(
+                        39,
+                        39,
+                        players=list(map(lambda qe: qe[1], queue)),
+                        enemies=["393"] * 20,
+                        wall=13,
+                    )
+
+                    for client, _ in queue:
+                        await sio.emit(
+                            "worldgen",
+                            (
+                                maze,
+                                list(map(lambda qe: qe[1], queue)),
+                            ),
+                            to=client,
                         )
 
-                        for client, _ in queue:
-                            await sio.emit(
-                                "worldgen",
-                                (
-                                    maze,
-                                    list(map(lambda qe: qe[1], queue)),
-                                ),
-                                to=client,
-                            )
-                    case "hide-n-seek":
-                        world = generate_world(
-                            39,
-                            39,
-                            players=list(map(lambda qe: qe[1], queue)),
-                            enemies=["390"] * 5,
-                            wall=10,
-                        )
+                if type == "hide-n-seek":
+                    world = generate_world(
+                        39,
+                        39,
+                        players=list(map(lambda qe: qe[1], queue)),
+                        enemies=["390"] * 5,
+                        wall=10,
+                    )
 
-                        for client, _ in queue:
-                            await sio.emit(
-                                "worldgen",
-                                (
-                                    world,
-                                    list(map(lambda qe: qe[1], queue)),
-                                ),
-                                to=client,
-                            )
+                    for client, _ in queue:
+                        await sio.emit(
+                            "worldgen",
+                            (
+                                world,
+                                list(map(lambda qe: qe[1], queue)),
+                            ),
+                            to=client,
+                        )
                 queues[queueid] = []
         await sio.sleep(2)
 
