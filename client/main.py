@@ -142,6 +142,7 @@ class Game:
         # general setup
         pygame.init()
         self.screen = pygame.display.set_mode((WIDTH, HEIGTH))
+        pygame.display.set_icon(pygame.image.load("../graphics/icons/hh.png"))
         pygame.display.set_caption("Heritage Hunters")
         self.clock = pygame.time.Clock()
         self.level: Level = None  # type: ignore

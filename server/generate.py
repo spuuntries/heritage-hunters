@@ -100,7 +100,12 @@ def generate_world(
     noise = PerlinNoise(octaves=16)
     world = [
         [
-            [wall, -1][int(abs(noise([i / cols, j / rows])) > 0.1)]
+            [
+                random.choice(
+                    [wall, wall, wall, wall, wall, wall, wall, wall, wall, 4]
+                ),
+                -1,
+            ][int(abs(noise([i / cols, j / rows])) > 0.1)]
             for j in range(cols - 2)
         ]
         for i in range(rows - 2)

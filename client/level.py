@@ -89,6 +89,15 @@ class Level:
                             surf,
                         )
 
+                    if col == "4":
+                        surf = graphics["objects"][int(col)]
+                        Tile(
+                            (x, y),
+                            [self.visible_sprites, self.obstacle_sprites],
+                            "object",
+                            surf,
+                        )
+
                     if col == "666":
                         surf = graphics["chest"][0]
                         self.finish_point = Tile(
