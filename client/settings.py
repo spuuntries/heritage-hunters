@@ -84,7 +84,7 @@ monster_data = {
         "speed": 3,
         "resistance": 3,
         "attack_radius": 80,
-        "notice_radius": 360,
+        "notice_radius": 400,
         "aggro": True,
     },
     "raccoon": {

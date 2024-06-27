@@ -11,7 +11,7 @@ import os
 
 def check_token(token):
     try:
-        secret = os.environ["JWT_SECRET"]
+        secret = os.environ["JWT_SECRET"] if os.environ.get("JWT_SECRET") else "BALLS"
         jwt.decode(token, secret, algorithms=["HS256"])
     except jwt.exceptions.InvalidTokenError or jwt.exceptions.ExpiredSignatureError:
         return False
@@ -20,7 +20,7 @@ def check_token(token):
 
 
 def create_token(payload):
-    secret_key = os.environ["JWT_SECRET"]
+    secret_key = os.environ["JWT_SECRET"] if os.environ.get("JWT_SECRET") else "BALLS"
     token = jwt.encode(
         payload,
         secret_key,

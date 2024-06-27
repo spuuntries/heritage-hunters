@@ -32,7 +32,7 @@ register_tortoise(
 )
 
 NUMQUEUES = 4
-QUEUESIZE = 2
+QUEUESIZE = 4 if not os.environ.get("QUEUESIZE") else os.environ["QUEUESIZE"]
 queues: dict[str, list[tuple[str, str]]] = {str(uuid4()): [] for _ in range(NUMQUEUES)}
 rooms: list[list] = []
 
@@ -125,7 +125,7 @@ async def processqueue():
                                 ),
                                 to=client,
                             )
-                    case "chase":
+                    case "hide-n-seek":
                         world = generate_world(
                             39,
                             39,
@@ -172,6 +172,7 @@ async def joinqueue(sid, type, clientid, *args, **kwargs):
     if not len(queues[queueId]):
         queues[queueId].append(type)
     queues[queueId].append((sid, clientid))
+    print(queues)
     await sio.emit("idqueue", queueId, to=sid)
 
 
@@ -199,6 +200,12 @@ async def playermove(sid, id, x, y, status, *args, **kwargs):
 async def disconnect(sid):
     print("Client disconnected")
     print(rooms)
+    if any(client[0] == sid for queue in queues.values() for client in queue):
+        queue = next(
+            queue for queue in queues.values() for client in queue if client[0] == sid
+        )
+        trclient = list(filter(lambda client: client[0] == sid, queue))[0]
+        queue.remove(trclient)
     if any(client[0] == sid for room in rooms for client in room):
         room = next(room for room in rooms for client in room if client[0] == sid)
         trclient = list(filter(lambda client: client[0] == sid, room))[0]

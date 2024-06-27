@@ -219,9 +219,9 @@ class Enemy(Entity):
                         path[0][1],
                     )
                     self.prev_move = path[:3]
-                    print(path)
+                    # print(path)
                     self.move(self.speed)
-                    print(self.direction)
+                    # print(self.direction)
         self.animate()
         self.cooldowns()
         self.check_death()

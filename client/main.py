@@ -31,6 +31,7 @@ class AsyncIOHandler:
         self.token = token
         self.clientid = None
         self.game: Optional[Game] = None
+        self.type: Optional[str] = None
         self.connected_event = threading.Event()
 
     def connect(self):
@@ -38,15 +39,15 @@ class AsyncIOHandler:
         def on_disconnect():
             logger("Disconnected!")
 
-        @self.sio.on("connect")  # type: ignore
-        def connect():
-            self.sio.emit("joinqueue", ("chase", self.clientid))
-
         @self.sio.on("connected")  # type: ignore
         def authed(clientid):
             logger("Authenticated!")
             self.clientid = clientid
             print(self.clientid)
+
+        @self.sio.on("connect")  # type: ignore
+        def connect():
+            self.sio.emit("joinqueue", (self.type, self.clientid))
 
         @self.sio.on("idqueue")  # type: ignore
         def queued(id):
@@ -218,11 +219,27 @@ if __name__ == "__main__":
                         continue
 
     token = db.get(ClientData.token.exists())
+
+    print(
+        """Choose a game mode:
+1.) Maze 
+2.) Hide-and-Seek"""
+    )
+
+    while True:
+        typeinput = input("Game mode: ")
+        if typeinput.strip() not in ["1", "2"]:
+            print(f"Mode {typeinput} not known! Try again.")
+            continue
+        typeinput = ["maze", "hide-n-seek"][int(typeinput) - 1]
+        print(f"{typeinput.title()} mode chosen!")
+        break
+
     async_io_handler = AsyncIOHandler(APPURL, token)
+    async_io_handler.type = typeinput
     connection_thread = threading.Thread(target=async_io_handler.connect)
     connection_thread.start()
     game = Game(async_io_handler)
-
     while True:
         if async_io_handler.is_connected():
             game.run()

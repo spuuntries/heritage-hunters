@@ -110,8 +110,8 @@ def negascout(start, player_pos, obstacles, size, depth, alpha, beta, reference)
                 obstacles,
                 size,
                 depth - 1,
-                -alpha,
                 -alpha - 1,
+                -alpha,
                 reference,
             )
             if alpha < score < beta:
@@ -158,7 +158,7 @@ def maximize_distance(start, player_pos, obstacles, size, depth, reference):
 
 
 def find_path_maximizing_distance(
-    start, player_pos, obstacles, size, depth, reference, max_path_length=100
+    start, player_pos, obstacles, size, depth, reference, max_path_length=3
 ):
     path = []
     current = start
