@@ -161,7 +161,8 @@ async def connect(sid, environ, auth, *args, **kwargs):
         await sio.emit("unauthorized", to=sid)
         await sio.disconnect(sid)
         return
-    token = jwt.decode(auth["token"], os.environ["JWT_SECRET"], algorithms=["HS256"])
+    secret = os.environ["JWT_SECRET"] if os.environ.get("JWT_SECRET") else "BALLS"
+    token = jwt.decode(auth["token"], secret, algorithms=["HS256"])
     print(token)
     await sio.emit("connected", token["clientid"], to=sid)
 
