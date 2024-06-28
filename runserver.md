@@ -40,5 +40,5 @@ Untuk membuat server menggunakannya, anda dapat meng-copy file tersebut menjadi 
 
 ### Penjelasan Settings
 
-`JWTSECRET`: Secret dari JWT yang digunakan untuk sistem autentikasi.
-`QUEUESIZE`: Ukuran dari Queue sebelum player didistribusikan kedalam room.
+`JWTSECRET`: Secret dari JWT yang digunakan untuk sistem autentikasi.  
+`QUEUESIZE`: Ukuran dari Queue sebelum player didistribusikan kedalam room.  
