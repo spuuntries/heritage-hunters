@@ -70,7 +70,7 @@ class AsyncIOHandler:
             logger(f"Queue: {length}")
             print(
                 f"You're queued with {int(length)-1 if int(length) > 1 else "no"
-                } other user{"s" if int(length) > 1 else ""
+                } other user{"s" if int(length)-1 > 1 else ""
                 }! Please wait until we have enough players in the queue..."
             )
 
@@ -84,8 +84,7 @@ class AsyncIOHandler:
         def updategame(data):
             logger(data)
             if self.game:
-                match data["type"]:
-                    case "move":
+                if data["type"] == "move":
                         if self.game.level:
                             to_move = list(
                                 filter(
@@ -99,7 +98,7 @@ class AsyncIOHandler:
                             to_move.hitbox.y = round(data["y"] / 64) * 64
                             to_move.status = data["stat"]
                             to_move.animate()
-                    case "atk":
+                if data["type"] == "atk":
                         if self.game.level:
                             to_attack = list(
                                 filter(
@@ -109,7 +108,7 @@ class AsyncIOHandler:
                             )[0]
                             to_attack.attack_time = pygame.time.get_ticks()
                             to_attack.attacking = True
-                    case "dc":
+                if data["type"] == "dc":
                         if self.game.level:
                             to_kill = list(
                                 filter(
@@ -118,7 +117,7 @@ class AsyncIOHandler:
                                 )
                             )[0]
                             to_kill.kill()
-                    case "exit":
+                if data["type"] == "exit":
                         if self.game:
                             print(f"{str(data['username']).title()} won the game!")
                             self.game.running = False
@@ -179,10 +178,6 @@ class Game:
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_m:
-                        if self.level:
-                            self.level.toggle_menu()
 
             self.screen.fill("#000000")
             if self.level:
@@ -226,8 +221,7 @@ if __name__ == "__main__":
                 login = input("Choose (1 or 2): ").strip().lower()
                 continue
 
-            match login:
-                case "1":
+            if login == "1":
                     print(
                         "Please enter your credentials. The password is hidden, just input your password and enter."
                     )
@@ -245,7 +239,7 @@ if __name__ == "__main__":
                         db.insert({"username": username})
                         print("Logged in!")
                         break
-                case "2":
+            elif login == "2":
                     print("Please enter your username.")
                     username = input("Username: ").strip()
                     body = random.choice(["TINGGI", "PENDEK", "BESAR", "KURUS"])
