@@ -14,18 +14,20 @@ import random
 import json
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--custom", action="store_true", help="Custom Instance?")
+parser.add_argument("--custom", action="store_true", help="Custom Instance")
+parser.add_argument("--debug", action="store_true", help="Debug mode")
 args = parser.parse_args()
 
 APPURL = input("Instance URL: ") if args.custom else "https://hhapi.spuun.art"
 
 
 def logger(str):
-    print(f"[{datetime.today().isoformat()}] {str}")
+    if args.debug:
+        print(f"[{datetime.today().isoformat()}] {str}")
 
 
 class AsyncIOHandler:
-    def __init__(self, app_url, token):
+    def __init__(self, app_url, token, db: TinyDB):
         self.sio = socketio.Client()
         self.app_url = app_url
         self.token = token
@@ -33,8 +35,18 @@ class AsyncIOHandler:
         self.game: Optional[Game] = None
         self.type: Optional[str] = None
         self.connected_event = threading.Event()
+        self.db = db
 
     def connect(self):
+        @self.sio.on("unauthorized")  # type: ignore
+        def unauthorized():
+            ClientData = Query()
+            db.remove(ClientData.token.exists())
+            print("Current credentials invalidated! Please try logging in again.")
+            sys.exit()
+            exit()
+            quit()
+            
         @self.sio.on("disconnect")  # type: ignore
         def on_disconnect():
             logger("Disconnected!")
@@ -43,7 +55,7 @@ class AsyncIOHandler:
         def authed(clientid):
             logger("Authenticated!")
             self.clientid = clientid
-            print(self.clientid)
+            logger(self.clientid)
 
         @self.sio.on("connect")  # type: ignore
         def connect():
@@ -56,10 +68,16 @@ class AsyncIOHandler:
         @self.sio.on("statusqueue")  # type: ignore
         def queuestatus(length):
             logger(f"Queue: {length}")
+            print(
+                f"You're queued with {int(length)-1 if int(length) > 1 else "no"
+                } other user{"s" if int(length) > 1 else ""
+                }! Please wait until we have enough players in the queue..."
+            )
 
         @self.sio.on("donequeue")  # type: ignore
         def donequeue():
             logger("Done queuing!")
+            print("Done queuing!")
             self.connected_event.set()
 
         @self.sio.on("stateupdate")  # type: ignore
@@ -109,6 +127,7 @@ class AsyncIOHandler:
                             pygame.quit()
                             sys.exit()
                             exit()
+                            quit()
 
         @self.sio.on("worldgen")  # type: ignore
         def worldgen(data, players):
@@ -123,6 +142,7 @@ class AsyncIOHandler:
                 pygame.quit()
                 sys.exit()
                 exit()
+                quit()
             if self.game and self.clientid:
                 self.game.level = Level(
                     layout=list(map(lambda row: list(map(str, row)), data)),
@@ -140,21 +160,18 @@ class AsyncIOHandler:
 class Game:
     def __init__(self, aio: AsyncIOHandler):
         # general setup
-        pygame.init()
-        self.screen = pygame.display.set_mode((WIDTH, HEIGTH))
-        pygame.display.set_icon(pygame.image.load("../graphics/icons/hh.png"))
-        pygame.display.set_caption("Heritage Hunters")
-        self.clock = pygame.time.Clock()
         self.level: Level = None  # type: ignore
         aio.game = self
         self.running = True
 
         # print("players", list(map(lambda p: (p.rect.x, p.rect.y), self.level.players)))
 
-        # sound
-        # main_sound = pygame.mixer.Sound("../audio/main.ogg")
-        # main_sound.set_volume(0.1)
-        # main_sound.play(loops=-1)
+    def setup(self):
+        pygame.init()
+        self.screen = pygame.display.set_mode((WIDTH, HEIGTH))
+        pygame.display.set_icon(pygame.image.load("../graphics/icons/hh.png"))
+        pygame.display.set_caption("Heritage Hunters")
+        self.clock = pygame.time.Clock()
 
     def run(self):
         while self.running:
@@ -175,11 +192,13 @@ class Game:
 
 
 if __name__ == "__main__":
-
     db = TinyDB("db.json")
     sio = socketio.Client()
     ClientData = Query()
     token = db.get(ClientData.token.exists())
+    main_sound = pygame.mixer.Sound("../audio/main.ogg")
+    main_sound.set_volume(0.1)
+    main_sound.play(loops=-1)
 
     print(
         """
@@ -223,6 +242,7 @@ if __name__ == "__main__":
                             print("Failed to login! Please try again.")
                             continue
                         db.insert({"token": res.content.decode()})
+                        db.insert({"username": username})
                         print("Logged in!")
                         break
                 case "2":
@@ -249,6 +269,8 @@ if __name__ == "__main__":
                         continue
 
     token = db.get(ClientData.token.exists())
+    username = db.get(ClientData.username.exists())
+    print(f"Logged in as {username['username']}!")  # type: ignore
 
     print(
         """Choose a game mode:
@@ -265,11 +287,12 @@ if __name__ == "__main__":
         print(f"{typeinput.title()} mode chosen!")
         break
 
-    async_io_handler = AsyncIOHandler(APPURL, token)
+    async_io_handler = AsyncIOHandler(APPURL, token, db)
     async_io_handler.type = typeinput
     connection_thread = threading.Thread(target=async_io_handler.connect)
     connection_thread.start()
     game = Game(async_io_handler)
     while game.running:
         if async_io_handler.is_connected():
+            game.setup()
             game.run()
