@@ -8,6 +8,6 @@ Important documents:
 
 - [Technical Document](./doknis.md)
 - [How to Run the Client from Source](./runclient.md)
-- [How to Run the Server](./runclient.md)
+- [How to Run the Server](./runserver.md)
 
 ---
